@@ -10,9 +10,11 @@ Purposefully tiny library providing Tuples for Java 8+.
 * Comparable, provided member types are `Comparable`
 * Serializable, provided member types are `Serializable`
 
-## Usage Examples
+## Usage
 
 ### Single-Instance Creation
+
+#### `Tuple.of` Factory Method
 
 The primary way to create a new Tuple is using the `of` factory method:
 
@@ -23,7 +25,30 @@ The primary way to create a new Tuple is using the `of` factory method:
   assertThat(tuple.getSecond()).isEqualTo("foo");
 ```
 
-Tulpes are immutable, but you can create new Tuples from existing ones:
+Instead of passing in the individual members, you can provide a `Map.Entry` argument
+
+```java
+  Map<String, LocalDate> map = ...
+  Tuple<String, LocalDate> tupleFromEntry = Tuple.of(map.entrySet().iterator.first());
+```
+
+You can call `of` with an `Iterable` argument, such as `List`. The Iterable can emit any number of elements but only the first two will be present in the returned Tuple. Anything fewer than two elements results in a Tuple with one or more null members.
+
+| Input (`Iterable<T>`) | Output (`Tuple<T, T>`) |
+| --------------------- | ---------------------- |
+| `[]`                  | `(null, null)`         |
+| `[1]`                 | `(1, null)`            |
+| `[1, 2]`              | `(1, 2)`               |
+| `[1, 2, 3, 4, 5]`     | `(1, 2)` extra elements ignored |
+
+```java
+  List<Long> list = ... 
+  Tuple<Long, Long> tupleFromList = Tuple.of(list);
+```
+
+#### `Tuple::withFirst` and `Tuple::withSecond` Instance Methods
+
+Tuples are immutable, but you can create new Tuples from existing ones using `withFirst` and `withSecond`
 
 ```java
   Tuple<Integer, String> newTuple = tuple.withFirst(100);
@@ -41,28 +66,9 @@ Tulpes are immutable, but you can create new Tuples from existing ones:
       .isEqualTo("bar");
 ```
 
-The `of` method accepts `Map.Entry` arguments
-
-```java
-  Map<String, LocalDate> map = ...
-  Tuple<String, LocalDate> tupleFromEntry = Tuple.of(map.entrySet().iterator.first());
-```
-
-It also accepts `Iterable` arguments, like `List`. 
-
-| Input (`Iterable<T>`) | Output (`Tuple<T, T>`) |
-| --------------------- | ---------------------- |
-| `[]`                  | `(null, null)`         |
-| `[1]`                 | `(1, null)`            |
-| `[1, 2]`              | `(1, 2)`               |
-| `[1, 2, 3, 4, 5]`     | `(1, 2)` extra elements ignored |
-
-```java
-  List<Long> list = ... 
-  Tuple<Long, Long> tupleFromList = Tuple.of(list);
-```
-
 ### Multi-Instance Creation
+
+#### `Tuples.tuplesFrom` Factory Method
 
 Use the `tuplesFrom` factory method to create a List of Tuples from a List (or any `Iterable` implementation) of single elements. 
 
@@ -83,4 +89,11 @@ Use the `tuplesFrom` factory method to create a List of Tuples from a List (or a
     assertThat(tuples.get(2)).isEqualTo(Tuple.of(5, null));
 ```
 
-The `tuplesFrom` method also accepts a `Map<K, V>` argument, returning a corresponding `Set<Tuple<K, V>>`
+The `tuplesFrom` method also accepts a `Map<K, V>` argument, returning a corresponding `Set<Tuple<K, V>>`.
+
+```java
+   Map<String, Integer> map = Map.of("foo", 1, "bar", 2, "baz", 3); // Java 9+
+   
+   Set<Tuple<String, Integer>> tuples = Tuple.tuplesFrom(map);
+   assertThat(tuples).hasSize(3);
+```
