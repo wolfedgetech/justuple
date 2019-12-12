@@ -41,13 +41,24 @@ Tulpes are immutable, but you can create new Tuples from existing ones:
       .isEqualTo("bar");
 ```
 
-Or you can create individual Tuples from `Map.Entry` or `Iterable` instances like `List`:
+The `of` method accepts `Map.Entry` arguments
 
 ```java
   Map<String, LocalDate> map = ...
   Tuple<String, LocalDate> tupleFromEntry = Tuple.of(map.entrySet().iterator.first());
-  
-  List<Long> list = ... // may be of any length, elements after index = 1 ignored
+```
+
+It also accepts `Iterable` arguments, like `List`. 
+
+| Input (`Iterable<T>`) | Output (`Tuple<T, T>`) |
+| --------------------- | ---------------------- |
+| `[]`                  | `(null, null)`         |
+| `[1]`                 | `(1, null)`            |
+| `[1, 2]`              | `(1, 2)`               |
+| `[1, 2, 3, 4, 5]`     | `(1, 2)` extra elements ignored |
+
+```java
+  List<Long> list = ... 
   Tuple<Long, Long> tupleFromList = Tuple.of(list);
 ```
 
@@ -55,12 +66,12 @@ Or you can create individual Tuples from `Map.Entry` or `Iterable` instances lik
 
 Use the `tuplesFrom` factory method to create a List of Tuples from a List (or any `Iterable` implementation) of single elements. 
 
-| Input (`Iterable<T>`) | Output (`List<Tuple<T, T>>`) |
-| ----------------------| ---------------------------- |
-| []                    | []                           | 
-| [1]                   | [(1, null)]                  |
-| [1, 2, 3, 4]          | [(1, 2), (3, 4)]             |
-| [1, 2, 3, 4, 5]       | [(1, 2), (3, 4), (5, null)]  |
+| Input (`Iterable<T>`) | Output (`List<Tuple<T, T>>`)  |
+| ----------------------| ----------------------------- |
+| `[]`                  | `[]`                          | 
+| `[1]`                 | `[(1, null)]`                 |
+| `[1, 2, 3, 4]`        | `[(1, 2), (3, 4)]`            |
+| `[1, 2, 3, 4, 5]`     | `[(1, 2), (3, 4), (5, null)]` |
 
 ```java
     List<Integer> list = Arrays.asList(1, 2, 3, 4, 5);
@@ -72,4 +83,4 @@ Use the `tuplesFrom` factory method to create a List of Tuples from a List (or a
     assertThat(tuples.get(2)).isEqualTo(Tuple.of(5, null));
 ```
 
-To c
+The `tuplesFrom` method also accepts a `Map<K, V>` argument, returning a corresponding `Set<Tuple<K, V>>`
