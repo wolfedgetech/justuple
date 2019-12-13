@@ -160,8 +160,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      * @return a map whose size is equal to the number of tuples passed in
      * @throws IllegalStateException if there are multiple tuples with equal first members
      */
-    public static <K, V, C extends Collection<Tuple<K, V>>> Map<K, V> map(C tuples) {
-        return tuples.stream()
+    public static <K, V> Map<K, V> map(Iterable<Tuple<K, V>> tuples) {
+        return StreamSupport.stream(tuples.spliterator(), false)
                 .collect(Collectors.toMap(Tuple::getFirst, Tuple::getSecond));
     }
 
@@ -191,9 +191,10 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      * @param tuples cannot be null but may be empty
      * @return a map whose size is equal to the number of unique first member values among all provided tuples
      */
-    public static <K, V, C extends Collection<Tuple<K, V>>> Map<K, List<V>> mapAll(C tuples) {
+    public static <K, V> Map<K, List<V>> mapAll(Iterable<Tuple<K, V>> tuples) {
         return unboxOptionalKeys(
-                tuples.stream().collect(mapOfFirstToListOfSecondCollector())
+                StreamSupport.stream(tuples.spliterator(), false)
+                        .collect(mapOfFirstToListOfSecondCollector())
         );
     }
 
@@ -279,15 +280,17 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns a Collector which will collect a stream of objects of type S into a List of Tuples of type S. Adjacent
-     * items in the Stream will be put into the same Tuple. An odd number of items results in a final Tuple that
-     * has a null second member.
+     * Returns a Collector which will collect a stream of objects of type S into a List of Tuples of type S. The
+     * provided Supplier returns the List instance used to collect the Tuples.
+     *
+     * Adjacent items in the Stream will be put into the same Tuple. An odd number of items results in a final Tuple
+     * that has a null second member.
      * <p>
      * This collector may be used in a parallel stream although it is not recommended.
      * <p>
      * This collector is not suitable for use with Streams emitting null items and will throw a NullPointerException.
      *
-     * @param supplier supplies the List to which the Tuples are to be collected into
+     * @param supplier supplies the List implementation that Tuples will be collected into
      * @throws NullPointerException if the Stream emits a null item
      */
     public static <S> Collector<S, List<Tuple<S, S>>, List<Tuple<S, S>>> tupleCollector(Supplier<List<Tuple<S, S>>> supplier) {
@@ -313,14 +316,14 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      * [(1,2),(3,4)] + [(null, 5),(6,7)] should combine into [(1,2),(3,4),(5,6),(7,null)]
      */
     private static <S> List<Tuple<S, S>> combineTupleLists(List<Tuple<S, S>> tuples, List<Tuple<S, S>> otherTuples) {
-        otherTuples.stream().forEachOrdered(tuple -> {
-            if (tuple.getFirst() != null) {
-                accumulateItemInTupleList(tuples, tuple.getFirst());
+        for (Tuple<S, S> otherTuple : otherTuples) {
+            if (otherTuple.getFirst() != null) {
+                accumulateItemInTupleList(tuples, otherTuple.getFirst());
             }
-            if (tuple.getSecond() != null) {
-                accumulateItemInTupleList(tuples, tuple.getSecond());
+            if (otherTuple.getSecond() != null) {
+                accumulateItemInTupleList(tuples, otherTuple.getSecond());
             }
-        });
+        }
         return tuples;
     }
 
