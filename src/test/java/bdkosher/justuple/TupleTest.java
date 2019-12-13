@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.io.Serializable;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
@@ -34,15 +35,15 @@ public class TupleTest {
     }
 
     @Test
-    void reversed_serializable_tuple_is_itself_serializable() {
-        Tuple<String, String> tuple = Tuple.of("foo", "bar").reverse();
+    void swapped_serializable_tuple_is_itself_serializable() {
+        Tuple<String, String> tuple = Tuple.of("foo", "bar").swapped();
 
         assertThat(tuple).isInstanceOf(Serializable.class);
     }
 
     @Test
-    void reversed_nonserializable_tuple_is_not_serializable() {
-        Tuple<Object, Object> tuple = Tuple.of(new Object(), new Object()).reverse();
+    void swapped_nonserializable_tuple_is_not_serializable() {
+        Tuple<Object, Object> tuple = Tuple.of(new Object(), new Object()).swapped();
 
         assertThat(tuple).isNotInstanceOf(Serializable.class);
     }
@@ -481,15 +482,15 @@ public class TupleTest {
     }
 
     @Test
-    void extract_works_for_empty_input() {
-        List<Tuple<Object, Object>> tuples = Tuple.tuplesFrom(Collections.emptyList());
+    void toTuples_works_for_empty_input() {
+        List<Tuple<Object, Object>> tuples = Tuple.toTuples(Collections.emptyList());
 
         assertThat(tuples).isEmpty();
     }
 
     @Test
-    void extract_given_a_single_item_list_returns_a_list_of_one_tuple_with_null_second_member() {
-        List<Tuple<String, String>> tuples = Tuple.tuplesFrom(Collections.singletonList("foo"));
+    void toTuples_given_a_single_item_list_returns_a_list_of_one_tuple_with_null_second_member() {
+        List<Tuple<String, String>> tuples = Tuple.toTuples(Collections.singletonList("foo"));
 
         assertThat(tuples).hasSize(1);
         Tuple<String, String> tuple = tuples.get(0);
@@ -498,20 +499,20 @@ public class TupleTest {
     }
 
     @Test
-    void extract_even_number_of_items_returns_half_as_many_balanced_tuples() {
+    void toTuples_even_number_of_items_returns_half_as_many_balanced_tuples() {
         List<String> list = Arrays.asList("A", "A", "B", "B", "C", "C", "D", "D", "E", "E", "F", "F", "G", "G");
 
-        List<Tuple<String, String>> tuples = Tuple.tuplesFrom(list);
+        List<Tuple<String, String>> tuples = Tuple.toTuples(list);
         assertThat(tuples).hasSize(list.size() / 2);
 
         tuples.forEach(tuple -> assertThat(tuple.getFirst()).isEqualTo(tuple.getSecond()));
     }
 
     @Test
-    void extract_odd_number_of_items_returns_half_as_many_balanced_tuples_plus_one_with_null_2nd_member() {
+    void toTuples_odd_number_of_items_returns_half_as_many_balanced_tuples_plus_one_with_null_2nd_member() {
         List<String> list = Arrays.asList("A", "A", "B", "B", "C", "C", "D", "D", "E", "E", "F", "F", "G", "G", "H");
 
-        List<Tuple<String, String>> tuples = Tuple.tuplesFrom(list);
+        List<Tuple<String, String>> tuples = Tuple.toTuples(list);
 
         int expectedTupleListSize = list.size() / 2 + 1;
         assertThat(tuples).hasSize(expectedTupleListSize);
@@ -609,23 +610,52 @@ public class TupleTest {
     }
 
     @Test
-    void tuplesFrom_empty_map_returns_empty_set() {
-        Set<Tuple<Object, Object>> tuples = Tuple.tuplesFrom(Collections.emptyMap());
+    void toTuples_empty_map_returns_empty_set() {
+        Set<Tuple<Object, Object>> tuples = Tuple.toTuples(Collections.emptyMap());
         assertThat(tuples).isEmpty();
     }
 
     @Test
-    void tuplesFrom_returned_set_has_same_size_as_input_map() {
+    void toTuples_returned_set_has_same_size_as_input_map() {
         Map<String, Integer> map = new HashMap<>();
         map.put("foo", 1);
         map.put("bar", 2);
         map.put("baz", 3);
 
-        Set<Tuple<String, Integer>> tuples = Tuple.tuplesFrom(map);
+        Set<Tuple<String, Integer>> tuples = Tuple.toTuples(map);
         assertThat(tuples).hasSize(3);
         assertThat(tuples).contains(Tuple.of("foo", 1));
         assertThat(tuples).contains(Tuple.of("bar", 2));
         assertThat(tuples).contains(Tuple.of("baz", 3));
+    }
+
+    @Test
+    void toTuples_ignores_null_items_from_input_Iterable() {
+        List<String> list = Arrays.asList("foo", null, null, "bar", null, "baz");
+
+        List<Tuple<String, String>> tuples = Tuple.toTuples(list);
+        assertThat(tuples).containsExactly(
+                Tuple.of("foo", "bar"),
+                Tuple.of("baz", null)
+        );
+    }
+
+    @Test
+    void collect_a_parallel_stream_into_tuples() {
+        List<Tuple<Integer, Integer>> tuples = IntStream.range(0, 1000)
+                .parallel()
+                .boxed()
+                .collect(Tuple.tupleCollector());
+        assertThat(tuples).hasSize(500);
+        tuples.forEach(tuple -> assertThat(tuple.getSecond()).isEqualTo(tuple.getFirst() + 1));
+    }
+
+    @Test
+    public void tuplesCollector_throws_NPE_for_iterable_emitting_nulls_as_documented() {
+        List<String> list = Arrays.asList("foo", null, "bar", "baz");
+
+        assertThatThrownBy(() ->list.stream().collect(Tuple.tupleCollector()))
+                .isInstanceOf(NullPointerException.class);
     }
 
 }

@@ -5,7 +5,7 @@ Purposefully tiny library providing Tuples for Java 8+.
 
 * Immutable
 * Supports `null`
-* Convertable to and from Java collections
+* Conversion methods to and from Java collections
 * Parameterized member types
 * Comparable, provided member types are `Comparable`
 * Serializable, provided member types are `Serializable`
@@ -14,7 +14,7 @@ Purposefully tiny library providing Tuples for Java 8+.
 
 ### Single-Instance Creation
 
-#### `Tuple.of` Factory Method
+#### `Tuple.of` Static Factory Method
 
 The primary way to create a new Tuple is using the `of` factory method:
 
@@ -66,11 +66,23 @@ Tuples are immutable, but you can create new Tuples from existing ones using `wi
       .isEqualTo("bar");
 ```
 
+#### `Tuple::swapped` Instance Method
+
+The `revsered` instance method returns a new Tuple with the first and second members swapped.
+
+```java
+    Tuple<String, Integer> tuple = Tuple.of("foo", 12);
+
+    Tuple<Integer, String> swapped = tuple.swapped();
+    assertThat(swapped.getFirst()).isEqualTo(12);
+    assertThat(swapped.getSecond()).isEqualTo("foo");
+```
+
 ### Multi-Instance Creation
 
-#### `Tuples.tuplesFrom` Factory Method
+#### `Tuple.toTuples` Static Factory Method
 
-Use the `tuplesFrom` factory method to create a List of Tuples from a List (or any `Iterable` implementation) of single elements. 
+Use the `toTuples` factory method to create a List of Tuples from a List (or any `Iterable` implementation) of single elements. 
 
 | Input (`Iterable<T>`) | Output (`List<Tuple<T, T>>`)  |
 | ----------------------| ----------------------------- |
@@ -89,11 +101,31 @@ Use the `tuplesFrom` factory method to create a List of Tuples from a List (or a
     assertThat(tuples.get(2)).isEqualTo(Tuple.of(5, null));
 ```
 
-The `tuplesFrom` method also accepts a `Map<K, V>` argument, returning a corresponding `Set<Tuple<K, V>>`.
+The `toTuples` method also accepts a `Map<K, V>` argument, returning a corresponding `Set<Tuple<K, V>>`.
 
 ```java
-   Map<String, Integer> map = Map.of("foo", 1, "bar", 2, "baz", 3); // Java 9+
+    Map<String, Integer> map = Map.of("foo", 1, "bar", 2, "baz", 3); // Java 9+
    
-   Set<Tuple<String, Integer>> tuples = Tuple.tuplesFrom(map);
-   assertThat(tuples).hasSize(3);
+    Set<Tuple<String, Integer>> tuples = Tuple.tuplesFrom(map);
+    assertThat(tuples).hasSize(3);
 ```
+
+#### Creating Tuples from a `java.util.Stream`
+
+The `Tuple.tupleCollector()` factory methods return a custom `Collector` that can generate a List of Tuples from a
+Stream. Be aware that the collector does not accept `null` items, so they should be filtered out before collection.
+
+```java
+    List<String> list = Arrays.asList("foo", "bar", "FOO", "BAR");
+
+    List<Tuple<String, String> tuples = list.stream()
+        .filter(Objects::nonNull)
+        .collect(Tuple.tupleCollector());
+
+    assertThat(tuples).containsExactly(
+        Tuple.of("foo", "bar"),
+        Tuple.of("FOO", "BAR")
+    );
+```
+
+### Converting to Java Collections

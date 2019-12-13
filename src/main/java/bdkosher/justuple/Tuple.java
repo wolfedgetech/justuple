@@ -81,7 +81,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      *
      * @return a new Tuple instance
      */
-    public Tuple<V, U> reverse() {
+    public Tuple<V, U> swapped() {
         return of(second, first);
     }
 
@@ -212,8 +212,12 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
         );
     }
 
+    /*
+     * groupingBy does not support null keys, so we box nulls in an Optional and unbox them with this method.
+     * The Map implementation we use in this method must handle null keys.
+     */
     private static <K, V> Map<K, V> unboxOptionalKeys(Map<Optional<K>, V> map) {
-        Map<K, V> nullKeySafeMap = new HashMap<>(); // HashMap accepts null keys
+        Map<K, V> nullKeySafeMap = new HashMap<>();
         map.forEach((key, value) -> nullKeySafeMap.put(key.orElse(null), value));
         return nullKeySafeMap;
     }
@@ -233,24 +237,29 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      * @param <V> the value type
      * @return a potentially empty Set of Tuple instances corresponding to the provided Map entries.
      */
-    public static <U, V> Set<Tuple<U, V>> tuplesFrom(Map<U, V> map) {
+    public static <U, V> Set<Tuple<U, V>> toTuples(Map<U, V> map) {
         return map.entrySet().stream()
                 .map(Tuple::of)
                 .collect(Collectors.toSet());
     }
 
     /**
-     * Returns a List of tuples such that every pair of adjacent elements from the iterable are combined into a Tuple.
-     * If the input has an even number of elements, the returned list of Tuples is half the size of input elements.
-     * If the input has an odd number of elements, the returned list of Tuples is half the size of inptu elements plus
-     * one; the final tuple in the returned list will have a null second member.
+     * Returns a List of tuples.
+     * <p>
+     * Every pair of adjacent non-null elements from the iterable are combined into a Tuple. Null elements are ignored.
+     * <p>
+     * If the input has an even number of non-null elements, the returned list of Tuples is half the size of input
+     * .
+     * If the input has an odd number of non-null elements, the returned list is half the size of input plus one, with
+     * the final tuple in the returned list having a null second member.
      *
      * @param iterable cannot be null
-     * @param <S>  list elements' type
+     * @param <S>      list elements' type
      * @return a potentially empty Set of Tuple instances corresponding to the provided Map entries.
      */
-    public static <S> List<Tuple<S, S>> tuplesFrom(Iterable<S> iterable) {
+    public static <S> List<Tuple<S, S>> toTuples(Iterable<S> iterable) {
         return StreamSupport.stream(iterable.spliterator(), false)
+                .filter(Objects::nonNull)
                 .collect(tupleCollector());
     }
 
@@ -258,6 +267,12 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      * Returns a Collector which will collect a stream of objects of type S into a List of Tuples of type S. Adjacent
      * items in the Stream will be put into the same Tuple. An odd number of items results in a final Tuple that
      * has a null second member.
+     * <p>
+     * This collector may be used in a parallel stream although it is not recommended.
+     * <p>
+     * This collector is not suitable for use with Streams emitting null items and will throw a NullPointerException.
+     *
+     * @throws NullPointerException if the Stream emits a null item
      */
     public static <S> Collector<S, List<Tuple<S, S>>, List<Tuple<S, S>>> tupleCollector() {
         return tupleCollector(ArrayList<Tuple<S, S>>::new); // type params needed for OpenJDK compilation
@@ -267,26 +282,53 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      * Returns a Collector which will collect a stream of objects of type S into a List of Tuples of type S. Adjacent
      * items in the Stream will be put into the same Tuple. An odd number of items results in a final Tuple that
      * has a null second member.
+     * <p>
+     * This collector may be used in a parallel stream although it is not recommended.
+     * <p>
+     * This collector is not suitable for use with Streams emitting null items and will throw a NullPointerException.
      *
      * @param supplier supplies the List to which the Tuples are to be collected into
+     * @throws NullPointerException if the Stream emits a null item
      */
     public static <S> Collector<S, List<Tuple<S, S>>, List<Tuple<S, S>>> tupleCollector(Supplier<List<Tuple<S, S>>> supplier) {
         return Collector.of(
                 supplier,
                 Tuple::accumulateItemInTupleList,
-                (list1, list2) -> {
-                    // XXX can we append list2 to list1 and return a reference to list1 instead?
-                    // XXX is this combiner needed if we don't allow parallelization?
-                    List<Tuple<S, S>> combined = new ArrayList<>();
-                    combined.addAll(list1);
-                    combined.addAll(list2);
-                    return combined;
-                },
-                UnaryOperator.identity()
+                Tuple::combineTupleLists,
+                UnaryOperator.identity(),
+                Collector.Characteristics.IDENTITY_FINISH
         );
     }
 
+    /*
+     * For use in collector generator. Assumes that Tuple items are non-null since null is used to mark where Tuple
+     * generation is incomplete.
+     *
+     * If the parallelization was split so that the final tuple has a null second member, we need to rebuild the tuples:
+     *
+     * [(1,2),(3,null)] + [(4,5),(6,7)] should combine into [(1,2),(3,4),(5,6),(7,null)]
+     *
+     * Likewise, if the list of other tuples begins with a tuple with first member null...
+     *
+     * [(1,2),(3,4)] + [(null, 5),(6,7)] should combine into [(1,2),(3,4),(5,6),(7,null)]
+     */
+    private static <S> List<Tuple<S, S>> combineTupleLists(List<Tuple<S, S>> tuples, List<Tuple<S, S>> otherTuples) {
+        otherTuples.stream().forEachOrdered(tuple -> {
+            if (tuple.getFirst() != null) {
+                accumulateItemInTupleList(tuples, tuple.getFirst());
+            }
+            if (tuple.getSecond() != null) {
+                accumulateItemInTupleList(tuples, tuple.getSecond());
+            }
+        });
+        return tuples;
+    }
+
+    /*
+     * null is used to mark in-progress tuples, therefore we cannot accept null items
+     */
     private static <S> void accumulateItemInTupleList(List<Tuple<S, S>> tuples, S item) {
+        Objects.requireNonNull(item, "Null items not allowed. Consider filtering them from Stream.");
         if (tuples.isEmpty()) {
             tuples.add(Tuple.of(item, null));
         } else {
@@ -357,7 +399,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
 
     /**
      * A serializable version of Tuple in case the Tuple's ability to be Serialized happens to be important to
-     * someone somwhere for some reason.
+     * someone somewhere for some reason.
      *
      * @param <U> not constrained to be serializable for the sake of implementation ease.
      * @param <V>
@@ -370,7 +412,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
         }
 
         @Override
-        public Tuple<V, U> reverse() {
+        public Tuple<V, U> swapped() {
             return new SerializableTuple<>(getSecond(), getFirst());
         }
 
