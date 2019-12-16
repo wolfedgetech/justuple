@@ -651,11 +651,21 @@ public class TupleTest {
     }
 
     @Test
-    public void tuplesCollector_throws_NPE_for_iterable_emitting_nulls_as_documented() {
+    void tuplesCollector_throws_NPE_for_iterable_emitting_nulls_as_documented() {
         List<String> list = Arrays.asList("foo", null, "bar", "baz");
 
         assertThatThrownBy(() ->list.stream().collect(Tuple.tupleCollector()))
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void foo() {
+        Map<String, List<Integer>> map = Tuple.mapAll(
+                Tuple.of("foo", 1),
+                Tuple.of("foo", 2)
+                );
+        assertThat(map).containsOnlyKeys("foo");
+        assertThat(map.get("foo")).contains(1, 2);
     }
 
 }

@@ -34,23 +34,27 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns a Map representation of this Tuple. The Map will have a single-entry. If the tuple's first member is
-     * null then the Map's sole key will also be null.
+     * Return a {@code java.util. Map} representation of this tuple. The Map will have a single-entry even if the
+     * tuple's first member is {@code null}.
+     *
+     * @return a single-entry Map
      */
     public Map<U, V> toMap() {
         return new SingleEntryMap<>(toMapEntry());
     }
 
     /**
-     * Returns a Map.Entry implementation of this tuple. If the tuple's first member is null, the entry's key will
-     * also be null.
+     * Return a {@code java.util.Map.Entry} representation of this tuple. If the tuple's first member is null, the
+     * entry's key will be null.
+     *
+     * @return a Map entry
      */
     public Map.Entry<U, V> toMapEntry() {
         return new SimpleEntry<>(first, second);
     }
 
     /**
-     * Returns the tuple as two-element list.
+     * Return the tuple as two-element list.
      *
      * @return non-null fixed-size list.
      */
@@ -59,9 +63,9 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * This method is identical to the toList method except that it is parameterized type is set to U, the type
-     * of the first tuple member. This method will throw an exception if the second member is not also of type U.
-     * In other words, if the Tuple contains members of the same type, this method should be preferred over toList.
+     * This method is identical to the {@code toList} method except that its parameterized type is {@code U}, the type
+     * of the first tuple member. This method throws an exception if the second member is not also of type {@code U}.
+     * If the Tuple contains members of the same type, this method should be preferred over {@code toList}.
      * Otherwise, do not use this method.
      *
      * @return a list of the tuple's first and second members
@@ -69,15 +73,15 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      */
     @SuppressWarnings("unchecked")
     public List<U> toTypedList() {
-        if (first == null && second == null
-                || first != null && second != null && second.getClass().isAssignableFrom(first.getClass())) {
+        if (first == null && second == null ||
+                first != null && second != null && second.getClass().isAssignableFrom(first.getClass())) {
             return (List<U>) toList();
         }
         throw new IllegalStateException("Tuple members do not share a mutually-compatible type.");
     }
 
     /**
-     * Returns a new tuple with the members in reversed order: the first element is second and the second is first.
+     * Return a new tuple with its members in reversed order; the first element is second and the second is first.
      *
      * @return a new Tuple instance
      */
@@ -86,7 +90,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns a new Tuple with the given value for the first member and the current second member unchanged.
+     * Return a new Tuple with the given value for the first member. The second member will be this tuple's current
+     * value. This tuple will remain unchanged.
      *
      * @param value may be null
      * @return a new Tuple
@@ -96,7 +101,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns a new Tuple with the given value for the second member and the current first member unchanged.
+     * Return a new Tuple with the given value for the second member. The second member will be this tuple's current
+     * value. This tuple will remain unchanged.
      *
      * @param value may be null
      * @return a new Tuple
@@ -106,8 +112,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Constructs a new Tuple from the given values. If the values are null and/or Serializable, then the returned
-     * Tuple will also be Serializable.
+     * Return a Tuple of the given values. If the values are {@code null} and/or {@code Serializable}, then the
+     * returned Tuple will also be {@code Serializable}.
      *
      * @param first  may be null.
      * @param second may be null.
@@ -121,9 +127,9 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Constructs a new Tuple from the given List. If the List contains no elements, the returned Tuple has null
-     * members. If the List only has one element, the returned Tuple's second member is null. If the List has
-     * more than two elements, only the first two will be present in the Tuple; the other elements are ignored.
+     * Return a Tuple of the first two elements available. If no elements are available, the Tuple will have
+     * {@code null} members. If only one element is available, the second member alone will be null. If there are
+     * more than two elements available, they are ignored and not consumed by this method.
      *
      * @param iterable may not be null but may be empty.
      * @return a Tuple
@@ -140,7 +146,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Constructs a new Tuple from the given Map Entry.
+     * Return a Tuple from the given {@code java.util.Map.Entry}.
      *
      * @param entry may not be null.
      * @return a Tuple
@@ -150,8 +156,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns the provided tuples as a Map with keys corresponding to the tuples' first members and the values
-     * corresponding to the tuples' second members.
+     * Return the given tuples as a Map whose keys correspond to the tuples' first members and whose values
+     * correspond to the tuples' respective second members.
      * <p>
      * If there are at least two tuples that have identical first members (according to Object.equals(Object)), an
      * IllegalStateException will be thrown.
@@ -166,8 +172,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns the provided tuples as a Map with keys corresponding to the tuples' first members and the values
-     * corresponding to the tuples' second members.
+     * Return the given tuples as a Map whose keys correspond to the tuples' first members and whose values
+     * correspond to the tuples' respective second members.
      * <p>
      * If there are at least two tuples that have identical first members (according to Object.equals(Object)), an
      * IllegalStateException will be thrown.
@@ -183,7 +189,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns the provided tuples as a Map with keys corresponding to the unique first members that exist for all
+     * Return the provided tuples as a Map with keys corresponding to the unique first members that exist for all
      * provided tuples. The values of the Map are all tuples' second members who share that first member value. For
      * example, if tuples (1,1) and (1,2) were provided as arguments, the returned map would have one entry with key=1
      * and a value that is the list [1,2].
@@ -199,7 +205,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns the provided tuples as a Map with keys corresponding to the unique first members that exist for all
+     * Return the provided tuples as a Map with keys corresponding to the unique first members that exist for all
      * provided tuples. The values of the Map are all tuples' second members who share that first member value. For
      * example, if tuples (1,1) and (1,2) were provided as arguments, the returned map would have one entry with key=1
      * and a value that is the list [1,2].
@@ -231,7 +237,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns a Set of Tuple instances derived from the provided Map.
+     * Return a Set of tuples derived from the provided Map. Each Map entry corresponds to exactly one tuple instance.
+     * Null Map keys and values are supported.
      *
      * @param map cannot be null
      * @param <U> the key type
@@ -245,9 +252,9 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns a List of tuples.
+     * Return a list of tuples containing all non-null elements available from the iterable.
      * <p>
-     * Every pair of adjacent non-null elements from the iterable are combined into a Tuple. Null elements are ignored.
+     * Every pair of adjacent non-null elements are combined into a Tuple. Null elements are ignored.
      * <p>
      * If the input has an even number of non-null elements, the returned list of Tuples is half the size of input
      * .
@@ -265,13 +272,15 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns a Collector which will collect a stream of objects of type S into a List of Tuples of type S. Adjacent
-     * items in the Stream will be put into the same Tuple. An odd number of items results in a final Tuple that
-     * has a null second member.
+     * Return a Collector to collect a stream of objects of type {@code S} into a list of tuples of type {@code S}.
+     * <p>
+     * Adjacent items in the Stream will be put into the same tuple. An odd number of items results in a final tuple
+     * that has a {@code null} second member.
      * <p>
      * This collector may be used in a parallel stream although it is not recommended.
      * <p>
-     * This collector is not suitable for use with Streams emitting null items and will throw a NullPointerException.
+     * This collector is not suitable for use with Streams emitting {@code null} items. Such streams will cause a
+     * {@code NullPointerException} to be thrown.
      *
      * @throws NullPointerException if the Stream emits a null item
      */
@@ -280,15 +289,16 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Returns a Collector which will collect a stream of objects of type S into a List of Tuples of type S. The
-     * provided Supplier returns the List instance used to collect the Tuples.
-     *
-     * Adjacent items in the Stream will be put into the same Tuple. An odd number of items results in a final Tuple
-     * that has a null second member.
+     * Return a Collector to collect a stream of objects of type {@code S} into a list of tuples of type {@code S}.
+     * The provided {@code Supplier} generates the List instance used to collect the tuples.
+     * <p>
+     * Adjacent items in the Stream will be put into the same tuple. An odd number of items results in a final tuple
+     * that has a {@code null} second member.
      * <p>
      * This collector may be used in a parallel stream although it is not recommended.
      * <p>
-     * This collector is not suitable for use with Streams emitting null items and will throw a NullPointerException.
+     * This collector is not suitable for use with Streams emitting {@code null} items. Such streams will cause a
+     * {@code NullPointerException} to be thrown.
      *
      * @param supplier supplies the List implementation that Tuples will be collected into
      * @throws NullPointerException if the Stream emits a null item
@@ -346,7 +356,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Equals when the object is the same instance or the first and second values within the tuple equal.
+     * Return true when the object is the same instance or the first and second values within the tuple equal.
      *
      * @param o may be null
      * @return true if the tuples are equal
@@ -360,6 +370,9 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
                 Objects.equals(second, tuple.second);
     }
 
+    /**
+     * Return a hash code based on the hashes for the first and second member values.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(first, second);
@@ -374,8 +387,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Compares the tuple according to its first and second members in that order. If the member types are not
-     * Comparable, then a ClassCastException will be thrown.
+     * Compare the tuple according to its first and second members in that order. If either of the member types are not
+     * instances of {@code Comparable}, a {@code ClassCastException} will be thrown.
      *
      * @param other the tuple to compare this tuple with
      * @return the comparison result according to the contract of {@link java.lang.Comparable}
