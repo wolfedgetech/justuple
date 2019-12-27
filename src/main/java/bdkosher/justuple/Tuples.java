@@ -13,6 +13,7 @@ import java.util.stream.StreamSupport;
 public abstract class Tuples {
 
     private Tuples() {
+        /* prevent instantiation */
     }
 
     /**
@@ -23,6 +24,8 @@ public abstract class Tuples {
      * IllegalStateException will be thrown.
      *
      * @param tuples cannot be null but may be empty
+     * @param <K>    the key type
+     * @param <V>    the value type
      * @return a map whose size is equal to the number of tuples passed in
      * @throws IllegalStateException if there are multiple tuples with equal first members
      */
@@ -39,6 +42,8 @@ public abstract class Tuples {
      * IllegalStateException will be thrown.
      *
      * @param tuples cannot be null but may be empty
+     * @param <K>    the key type
+     * @param <V>    the value type
      * @return a map whose size is equal to the number of tuples passed in
      * @throws IllegalStateException if there are multiple tuples with equal first members
      */
@@ -55,6 +60,8 @@ public abstract class Tuples {
      * and a value that is the list [1,2].
      *
      * @param tuples cannot be null but may be empty
+     * @param <K>    the key type
+     * @param <V>    the value type
      * @return a map whose size is equal to the number of unique first member values among all provided tuples
      */
     public static <K, V> Map<K, List<V>> mapAll(Iterable<Tuple<K, V>> tuples) {
@@ -71,6 +78,8 @@ public abstract class Tuples {
      * and a value that is the list [1,2].
      *
      * @param tuples cannot be null but may be empty
+     * @param <K>    the key type
+     * @param <V>    the value type
      * @return a map whose size is equal to the number of unique first member values among all provided tuples
      */
     public static <K, V> Map<K, List<V>> mapAll(Tuple<K, V>... tuples) {
@@ -122,7 +131,7 @@ public abstract class Tuples {
      * the final tuple in the returned list having a null second member.
      *
      * @param iterable cannot be null
-     * @param <S>      list elements' type
+     * @param <S>      the type of elements emitted by the Stream and the type of the Tuples' members
      * @return a potentially empty Set of Tuple instances corresponding to the provided Map entries.
      */
     public static <S> List<Tuple<S, S>> from(Iterable<S> iterable) {
@@ -142,6 +151,8 @@ public abstract class Tuples {
      * This collector is not suitable for use with Streams emitting {@code null} items. Such streams will cause a
      * {@code NullPointerException} to be thrown.
      *
+     * @param <S> the type of elements emitted by the Stream and the type of the Tuples' members
+     * @return a Collector which produces a List of Tuple instances
      * @throws NullPointerException if the Stream emits a null item
      */
     public static <S> Collector<S, List<Tuple<S, S>>, List<Tuple<S, S>>> collector() {
@@ -161,6 +172,8 @@ public abstract class Tuples {
      * {@code NullPointerException} to be thrown.
      *
      * @param supplier supplies the List implementation that Tuples will be collected into
+     * @param <S>      the type of elements emitted by the Stream and the type of the Tuples' members
+     * @return a Collector which produces a List of Tuple instances
      * @throws NullPointerException if the Stream emits a null item
      */
     public static <S> Collector<S, List<Tuple<S, S>>, List<Tuple<S, S>>> collector(Supplier<List<Tuple<S, S>>> supplier) {
