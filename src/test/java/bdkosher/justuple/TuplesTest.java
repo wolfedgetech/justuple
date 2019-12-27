@@ -1,0 +1,227 @@
+package bdkosher.justuple;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.stream.IntStream;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+
+public class TuplesTest {
+
+    @Test
+    void map_returns_empty_when_no_tuples_provided() {
+        Map<Object, Object> emptyCollectionMap = Tuples.map(Collections.emptyList());
+        assertThat(emptyCollectionMap).isEmpty();
+
+        Map<Object, Object> emptyVarargsMap = Tuples.map();
+        assertThat(emptyVarargsMap.isEmpty());
+    }
+
+    @Test
+    void map_throws_IllegalStateException_when_duplicate_first_members() {
+        List<Tuple<String, String>> list = Arrays.asList(
+                Tuple.of("foo", "bar"),
+                Tuple.of("foo", "baz")
+        );
+        assertThatIllegalStateException().isThrownBy(() -> Tuples.map(list));
+
+        Tuple<String, String>[] array = list.toArray(new Tuple[0]);
+        assertThatIllegalStateException().isThrownBy(() -> Tuples.map(array));
+    }
+
+    @Test
+    void map_has_same_number_of_entries_as_tuple_args() {
+        List<Tuple<String, Integer>> list = Arrays.asList(
+                Tuple.of("foo", 1),
+                Tuple.of("bar", 2),
+                Tuple.of("baz", 3)
+        );
+        Tuple<String, Integer>[] array = list.toArray(new Tuple[0]);
+
+        BiConsumer<Map<String, Integer>, String> assertMapIsCorrect = (map, message) -> {
+            assertThat(map)
+                    .withFailMessage(message + " had unexpected size")
+                    .hasSize(3);
+            assertThat(map)
+                    .withFailMessage(message + " had unexpected keys")
+                    .containsOnlyKeys("foo", "bar", "baz");
+            assertThat(map.get("foo"))
+                    .withFailMessage(message + " had unexpected value for key=foo")
+                    .isEqualTo(1);
+            assertThat(map.get("bar"))
+                    .withFailMessage(message + " had unexpected value for key=bar")
+                    .isEqualTo(2);
+            assertThat(map.get("baz"))
+                    .withFailMessage(message + " had unexpected value for key=baz")
+                    .isEqualTo(3);
+        };
+
+        assertMapIsCorrect.accept(Tuples.map(list), "map from list");
+        assertMapIsCorrect.accept(Tuples.map(array), "map from array");
+    }
+
+    @Test
+    void toTuples_works_for_empty_input() {
+        List<Tuple<Object, Object>> tuples = Tuples.from(Collections.emptyList());
+
+        assertThat(tuples).isEmpty();
+    }
+
+    @Test
+    void toTuples_given_a_single_item_list_returns_a_list_of_one_tuple_with_null_second_member() {
+        List<Tuple<String, String>> tuples = Tuples.from(Collections.singletonList("foo"));
+
+        assertThat(tuples).hasSize(1);
+        Tuple<String, String> tuple = tuples.get(0);
+        assertThat(tuple.getFirst()).isEqualTo("foo");
+        assertThat(tuple.getSecond()).isNull();
+    }
+
+    @Test
+    void toTuples_even_number_of_items_returns_half_as_many_balanced_tuples() {
+        List<String> list = Arrays.asList("A", "A", "B", "B", "C", "C", "D", "D", "E", "E", "F", "F", "G", "G");
+
+        List<Tuple<String, String>> tuples = Tuples.from(list);
+        assertThat(tuples).hasSize(list.size() / 2);
+
+        tuples.forEach(tuple -> assertThat(tuple.getFirst()).isEqualTo(tuple.getSecond()));
+    }
+
+    @Test
+    void toTuples_odd_number_of_items_returns_half_as_many_balanced_tuples_plus_one_with_null_2nd_member() {
+        List<String> list = Arrays.asList("A", "A", "B", "B", "C", "C", "D", "D", "E", "E", "F", "F", "G", "G", "H");
+
+        List<Tuple<String, String>> tuples = Tuples.from(list);
+
+        int expectedTupleListSize = list.size() / 2 + 1;
+        assertThat(tuples).hasSize(expectedTupleListSize);
+
+        tuples.stream()
+                .limit(expectedTupleListSize - 1) // skip the final tuple
+                .forEach(tuple -> assertThat(tuple.getFirst()).isEqualTo(tuple.getSecond()));
+
+        Tuple<String, String> lastTuple = tuples.get(expectedTupleListSize - 1);
+        assertThat(lastTuple.getFirst()).isEqualTo("H");
+        assertThat(lastTuple.getSecond()).isNull();
+    }
+
+    @Test
+    void mapAll_empty_arg_returns_empty_map() {
+        Map<Object, List<Object>> mapFromCollection = Tuples.mapAll(Collections.emptySet());
+        assertThat(mapFromCollection).isEmpty();
+
+        Map<Object, List<Object>> mapFromVarargs = Tuples.mapAll();
+        assertThat(mapFromVarargs).isEmpty();
+    }
+
+    @Test
+    void mapAll_combines_common_first_members_into_single_entry() {
+        List<Tuple<String, Integer>> collection = Arrays.asList(
+                Tuple.of("foo", 1),
+                Tuple.of("foo", 2),
+                Tuple.of("foo", 3),
+                Tuple.of("bar", 1)
+        );
+        Tuple<String, Integer>[] array = collection.toArray(new Tuple[0]);
+
+        BiConsumer<Map<String, List<Integer>>, String> assertMapIsCorrect = (map, message) -> {
+            assertThat(map)
+                    .withFailMessage(message + " had unexpected size")
+                    .hasSize(2);
+            assertThat(map)
+                    .withFailMessage(message + " had unexpected keys")
+                    .containsOnlyKeys("foo", "bar");
+            assertThat(map.get("foo"))
+                    .withFailMessage(message + " had unexpected value for key=foo")
+                    .containsExactly(1, 2, 3);
+            assertThat(map.get("bar"))
+                    .withFailMessage(message + " had unexpected value for key=bar")
+                    .containsExactly(1);
+        };
+
+        assertMapIsCorrect.accept(Tuples.mapAll(collection), "mapAll from collection");
+        assertMapIsCorrect.accept(Tuples.mapAll(array), "mapAll from array");
+    }
+
+    @Test
+    void mapAll_supports_null_tuple_members() {
+        List<Tuple<String, Integer>> collection = Arrays.asList(
+                Tuple.of("foo", 1),
+                Tuple.of("foo", null),
+                Tuple.of(null, 1),
+                Tuple.of(null, 2),
+                Tuple.of(null, null)
+        );
+        Tuple<String, Integer>[] array = collection.toArray(new Tuple[0]);
+
+        BiConsumer<Map<String, List<Integer>>, String> assertMapIsCorrect = (map, message) -> {
+            assertThat(map)
+                    .withFailMessage(message + " had unexpected size")
+                    .hasSize(2);
+            assertThat(map)
+                    .withFailMessage(message + " had unexpected keys")
+                    .containsOnlyKeys("foo", null);
+            assertThat(map.get("foo"))
+                    .withFailMessage(message + " had unexpected value for key=foo")
+                    .containsExactly(1, null);
+            assertThat(map.get(null))
+                    .withFailMessage(message + " had unexpected value for key=null")
+                    .containsExactly(1, 2, null);
+        };
+
+        assertMapIsCorrect.accept(Tuples.mapAll(collection), "mapAll from collection");
+        assertMapIsCorrect.accept(Tuples.mapAll(array), "mapAll from collection");
+    }
+
+    @Test
+    void from_method_empty_map_returns_empty_set() {
+        Set<Tuple<Object, Object>> tuples = Tuples.from(Collections.emptyMap());
+        assertThat(tuples).isEmpty();
+    }
+
+    @Test
+    void from_method_returned_set_has_same_size_as_input_map() {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("foo", 1);
+        map.put("bar", 2);
+        map.put("baz", 3);
+
+        Set<Tuple<String, Integer>> tuples = Tuples.from(map);
+        assertThat(tuples).hasSize(3);
+        assertThat(tuples).contains(Tuple.of("foo", 1));
+        assertThat(tuples).contains(Tuple.of("bar", 2));
+        assertThat(tuples).contains(Tuple.of("baz", 3));
+    }
+
+    @Test
+    void from_method_ignores_null_items_from_input_Iterable() {
+        List<String> list = Arrays.asList("foo", null, null, "bar", null, "baz");
+
+        List<Tuple<String, String>> tuples = Tuples.from(list);
+        assertThat(tuples).containsExactly(
+                Tuple.of("foo", "bar"),
+                Tuple.of("baz", null)
+        );
+    }
+
+    @Test
+    void collect_a_parallel_stream_into_tuples() {
+        List<Tuple<Integer, Integer>> tuples = IntStream.range(0, 1000)
+                .parallel()
+                .boxed()
+                .collect(Tuples.collector());
+        assertThat(tuples).hasSize(500);
+        tuples.forEach(tuple -> assertThat(tuple.getSecond()).isEqualTo(tuple.getFirst() + 1));
+    }
+
+    @Test
+    void tuplesCollector_throws_NPE_for_iterable_emitting_nulls_as_documented() {
+        List<String> list = Arrays.asList("foo", null, "bar", "baz");
+
+        assertThatThrownBy(() ->list.stream().collect(Tuples.collector()))
+                .isInstanceOf(NullPointerException.class);
+    }
+}
