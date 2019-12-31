@@ -89,8 +89,8 @@ The `swapped` instance method returns a new Tuple with the first and second memb
 
 ### Creating Multiple Tuples
 
-The `Tuples` class (note the `s` on the end) contains static methods for creating multiple `Tuple` instances 
-(note the lack of `s`).
+The `Tuples` class (note the "s" on the end) contains static methods for creating multiple `Tuple` instances 
+(note the lack of "s") from a collection/map/stream of individual items.
 
 #### `Tuples.from` Static Factory Method
 
@@ -127,7 +127,7 @@ The `from` method also accepts a `Map<K, V>` argument, returning a corresponding
 #### Creating from a `java.util.Stream`
 
 The `Tuples.collector()` factory methods return a custom `Collector` that can generate a List of Tuples from a
-Stream. Be aware that the collector does not accept `null` items, so they should be filtered out before collection.
+Stream.
 
 ```java
   List<String> list = Arrays.asList("foo", "bar", "FOO", "BAR");
