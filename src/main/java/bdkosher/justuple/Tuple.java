@@ -1,7 +1,10 @@
 package bdkosher.justuple;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * An ordered pair of potentially null references, not necessarily of the same type. Immutable and thread-safe.
@@ -31,10 +34,24 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      * @return a Tuple of the two arguments.
      */
     public static <U, V> Tuple<U, V> of(U first, V second) {
-        if (SerializableTuple.areSerializable(first, second)) {
+        if (areSerializable(first, second)) {
             return new SerializableTuple<>(first, second);
         }
         return new Tuple<>(first, second);
+    }
+
+    /**
+     * Creates a partial tuple where only one member is populated.
+     *
+     * @param value the only value contained within the tuple.
+     * @param <S>   the type of the value
+     * @return a partial tuple
+     */
+    static <S> Tuple<S, S> partial(S value) {
+        if (isSerializable(value)) {
+            return new PartialSerializableTuple<>(value);
+        }
+        return new PartialTuple<>(value);
     }
 
     /**
@@ -61,12 +78,20 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      * Return a Tuple from the given {@code java.util.Map.Entry}.
      *
      * @param entry may not be null.
-     * @param <U> the key type of the entry and Tuple's first member
-     * @param <V> the value type of the entry and Tuple's second member
+     * @param <U>   the key type of the entry and Tuple's first member
+     * @param <V>   the value type of the entry and Tuple's second member
      * @return a Tuple
      */
     public static <U, V> Tuple<U, V> of(Map.Entry<U, V> entry) {
         return of(entry.getKey(), entry.getValue());
+    }
+
+    private static boolean areSerializable(Object first, Object second) {
+        return isSerializable(first) && isSerializable(second);
+    }
+
+    private static boolean isSerializable(Object o) {
+        return o == null || o instanceof Serializable;
     }
 
     public U getFirst() {
@@ -75,6 +100,16 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
 
     public V getSecond() {
         return second;
+    }
+
+    /**
+     * Returns true if this Tuple was partially constructed using the {@code partial} factory method. Partial tuples
+     * are semantically distinct from tuples constructed with two values, even if one or both of those values are null.
+     *
+     * @return true if the tuple is partial
+     */
+    boolean isPartial() {
+        return false;
     }
 
     /**
@@ -121,7 +156,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
      * @return a Map entry
      */
     public Map.Entry<U, V> toMapEntry() {
-        return new SimpleEntry<>(first, second);
+        return new SimpleMapEntry<>(first, second);
     }
 
     /**
@@ -191,7 +226,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof Tuple)) return false;
         Tuple<?, ?> tuple = (Tuple<?, ?>) o;
         return Objects.equals(first, tuple.first) &&
                 Objects.equals(second, tuple.second);
@@ -226,85 +261,38 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
         SerializableTuple(U first, V second) {
             super(first, second);
         }
+    }
 
+    /**
+     * A partial tuple is constructed with only one potentially null member.
+     * <p>
+     * Note: this class does not override the swapped method, which means that swapping a partial tuple results in
+     * a new, non-partial tuple with first member always being null.
+     *
+     * @param <S> the type of the only member value
+     */
+    private static class PartialTuple<S> extends Tuple<S, S> {
+        PartialTuple(S only) {
+            super(only, null);
+        }
+
+        /**
+         * Always returns true.
+         *
+         * @return true
+         */
         @Override
-        public Tuple<V, U> swapped() {
-            return new SerializableTuple<>(getSecond(), getFirst());
-        }
-
-        private static boolean areSerializable(Object first, Object second) {
-            return isSerializable(first) && isSerializable(second);
-        }
-
-        private static boolean isSerializable(Object o) {
-            return o == null || o instanceof Serializable;
+        boolean isPartial() {
+            return true;
         }
     }
 
-    private static class SimpleEntry<U, V> implements Map.Entry<U, V> {
+    private static class PartialSerializableTuple<S> extends PartialTuple<S> implements Serializable {
+        private static final long serialVersionUID = 20191230;
 
-        private final U key;
-        private V value;
-
-        SimpleEntry(U key, V value) {
-            this.key = key;
-            this.value = value;
-        }
-
-        @Override
-        public U getKey() {
-            return key;
-        }
-
-        @Override
-        public V getValue() {
-            return value;
-        }
-
-        @Override
-        public V setValue(V value) {
-            V original = this.value;
-            this.value = value;
-            return original;
+        PartialSerializableTuple(S only) {
+            super(only);
         }
     }
 
-    private static class DualItemList<T> extends AbstractList<T> {
-        private static final int SIZE = 2;
-
-        private final T first;
-        private final T second;
-
-        DualItemList(T first, T second) {
-            this.first = first;
-            this.second = second;
-        }
-
-        @Override
-        public int size() {
-            return SIZE;
-        }
-
-        @Override
-        public T get(int index) {
-            if (index < 0 || index > 1) {
-                throw new ArrayIndexOutOfBoundsException(index + " is outside range of 0 to " + SIZE + "exclusive.");
-            }
-            return index == 0 ? first : second;
-        }
-    }
-
-    private static class SingleEntryMap<U, V> extends AbstractMap<U, V> {
-
-        private final Map.Entry<U, V> tupleEntry;
-
-        SingleEntryMap(Map.Entry<U, V> tupleEntry) {
-            this.tupleEntry = tupleEntry;
-        }
-
-        @Override
-        public Set<Entry<U, V>> entrySet() {
-            return Collections.singleton(tupleEntry);
-        }
-    }
 }

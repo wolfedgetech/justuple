@@ -2,6 +2,7 @@ package bdkosher.justuple;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
@@ -197,14 +198,25 @@ public class TuplesTest {
     }
 
     @Test
-    void from_method_ignores_null_items_from_input_Iterable() {
+    void from_method_handles_null_items_from_input_Iterable() {
         List<String> list = Arrays.asList("foo", null, null, "bar", null, "baz");
 
         List<Tuple<String, String>> tuples = Tuples.from(list);
         assertThat(tuples).containsExactly(
-                Tuple.of("foo", "bar"),
-                Tuple.of("baz", null)
+                Tuple.of("foo", null),
+                Tuple.of(null, "bar"),
+                Tuple.of(null, "baz")
         );
+    }
+
+    @Test
+    void collect_a_serial_stream_into_tuples() {
+        List<Tuple<Integer, Integer>> tuples = IntStream.range(0, 1000)
+                .boxed()
+                .collect(Tuples.collector());
+
+        assertThat(tuples).hasSize(500);
+        tuples.forEach(tuple -> assertThat(tuple.getSecond()).isEqualTo(tuple.getFirst() + 1));
     }
 
     @Test
@@ -213,15 +225,38 @@ public class TuplesTest {
                 .parallel()
                 .boxed()
                 .collect(Tuples.collector());
+
         assertThat(tuples).hasSize(500);
-        tuples.forEach(tuple -> assertThat(tuple.getSecond()).isEqualTo(tuple.getFirst() + 1));
+        tuples.forEach(tuple ->
+                assertThat(tuple.getSecond()).isEqualTo(tuple.getFirst() + 1));
     }
 
     @Test
-    void tuplesCollector_throws_NPE_for_iterable_emitting_nulls_as_documented() {
-        List<String> list = Arrays.asList("foo", null, "bar", "baz");
+    void tuplesCollector_can_handle_nulls_emitted_from_stream() {
+        List<String> list = Arrays.asList("foo", null, "bar", "baz", null, "buk");
 
-        assertThatThrownBy(() ->list.stream().collect(Tuples.collector()))
-                .isInstanceOf(NullPointerException.class);
+        List<Tuple<String, String>> tuples = list.stream().collect(Tuples.collector());
+        assertThat(tuples).containsExactly(
+                Tuple.of("foo", null),
+                Tuple.of("bar", "baz"),
+                Tuple.of(null, "buk")
+        );
+    }
+
+    @Test
+    void collected_tuples_when_final_tuple_is_partial_retains_serializability() {
+        List<Tuple<Integer, Integer>> tuples = IntStream.rangeClosed(0, 2)
+                .parallel()
+                .boxed()
+                .collect(Tuples.collector());
+
+        assertThat(tuples).containsExactly(
+                Tuple.of(0, 1),
+                Tuple.of(2, null)
+        );
+        Tuple<Integer, Integer> finalTuple = tuples.get(1);
+        assertThat(finalTuple)
+                .withFailMessage("Final Tuple should be serializable when sole member is serializable.")
+                .isInstanceOf(Serializable.class);
     }
 }

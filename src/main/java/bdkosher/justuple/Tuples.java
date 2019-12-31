@@ -89,7 +89,7 @@ public abstract class Tuples {
     }
 
     /*
-     * groupingBy does not support null keys, so we box nulls in an Optional and unbox them with this method.
+     * Note: groupingBy does not support null keys, so we box nulls in an Optional and unbox them with this method.
      * The Map implementation we use in this method must handle null keys.
      */
     private static <K, V> Map<K, V> unboxOptionalKeys(Map<Optional<K>, V> map) {
@@ -107,7 +107,7 @@ public abstract class Tuples {
 
     /**
      * Return a Set of tuples derived from the provided Map. Each Map entry corresponds to exactly one tuple instance.
-     * Null Map keys and values are supported.
+     * Null keys and values are supported.
      *
      * @param map cannot be null
      * @param <U> the key type
@@ -121,13 +121,13 @@ public abstract class Tuples {
     }
 
     /**
-     * Return a list of tuples containing all non-null elements available from the iterable.
+     * Return a list of tuples containing all elements available from the iterable.
      * <p>
-     * Every pair of adjacent non-null elements are combined into a Tuple. Null elements are ignored.
+     * Every pair of adjacent elements are combined into a Tuple.
      * <p>
-     * If the input has an even number of non-null elements, the returned list of Tuples is half the size of input
+     * If the input has an even number of elements, the returned list of Tuples is half the size of input
      * .
-     * If the input has an odd number of non-null elements, the returned list is half the size of input plus one, with
+     * If the input has an odd number of elements, the returned list is half the size of input plus one, with
      * the final tuple in the returned list having a null second member.
      *
      * @param iterable cannot be null
@@ -136,7 +136,6 @@ public abstract class Tuples {
      */
     public static <S> List<Tuple<S, S>> from(Iterable<S> iterable) {
         return StreamSupport.stream(iterable.spliterator(), false)
-                .filter(Objects::nonNull)
                 .collect(collector());
     }
 
@@ -147,16 +146,12 @@ public abstract class Tuples {
      * that has a {@code null} second member.
      * <p>
      * This collector may be used in a parallel stream although it is not recommended.
-     * <p>
-     * This collector is not suitable for use with Streams emitting {@code null} items. Such streams will cause a
-     * {@code NullPointerException} to be thrown.
      *
      * @param <S> the type of elements emitted by the Stream and the type of the Tuples' members
      * @return a Collector which produces a List of Tuple instances
-     * @throws NullPointerException if the Stream emits a null item
      */
     public static <S> Collector<S, List<Tuple<S, S>>, List<Tuple<S, S>>> collector() {
-        return collector(ArrayList<Tuple<S, S>>::new); // type params needed for OpenJDK compilation
+        return collector(ArrayList<Tuple<S, S>>::new); // explicit type params needed for OpenJDK 8 compilation
     }
 
     /**
@@ -167,63 +162,64 @@ public abstract class Tuples {
      * that has a {@code null} second member.
      * <p>
      * This collector may be used in a parallel stream although it is not recommended.
-     * <p>
-     * This collector is not suitable for use with Streams emitting {@code null} items. Such streams will cause a
-     * {@code NullPointerException} to be thrown.
      *
      * @param supplier supplies the List implementation that Tuples will be collected into
      * @param <S>      the type of elements emitted by the Stream and the type of the Tuples' members
      * @return a Collector which produces a List of Tuple instances
-     * @throws NullPointerException if the Stream emits a null item
      */
     public static <S> Collector<S, List<Tuple<S, S>>, List<Tuple<S, S>>> collector(Supplier<List<Tuple<S, S>>> supplier) {
         return Collector.of(
                 supplier,
-                Tuples::accumulateItemInTupleList,
-                Tuples::combineTupleLists,
+                Tuples::accumulateItem,
+                (list1, list2) -> combineTupleLists(list1, list2, supplier),
                 UnaryOperator.identity(),
                 Collector.Characteristics.IDENTITY_FINISH
         );
     }
 
     /*
-     * For use in collector generator. Assumes that Tuple items are non-null since null is used to mark where Tuple
-     * generation is incomplete.
-     *
-     * If the parallelization was split so that the final tuple has a null second member, we need to rebuild the tuples:
+     * If parallelization resulted in the list containing a tuple that is partially constructed, we need to rebuild
+     * the tuples, e.g.
      *
      * [(1,2),(3,null)] + [(4,5),(6,7)] should combine into [(1,2),(3,4),(5,6),(7,null)]
-     *
-     * Likewise, if the list of other tuples begins with a tuple with first member null...
-     *
-     * [(1,2),(3,4)] + [(null, 5),(6,7)] should combine into [(1,2),(3,4),(5,6),(7,null)]
      */
-    private static <S> List<Tuple<S, S>> combineTupleLists(List<Tuple<S, S>> tuples, List<Tuple<S, S>> otherTuples) {
-        for (Tuple<S, S> otherTuple : otherTuples) {
-            if (otherTuple.getFirst() != null) {
-                accumulateItemInTupleList(tuples, otherTuple.getFirst());
-            }
-            if (otherTuple.getSecond() != null) {
-                accumulateItemInTupleList(tuples, otherTuple.getSecond());
+    private static <S> List<Tuple<S, S>> combineTupleLists(
+            List<Tuple<S, S>> tuples,
+            List<Tuple<S, S>> otherTuples,
+            Supplier<List<Tuple<S, S>>> supplier) {
+
+        List<Tuple<S, S>> combinedTuples = supplier.get();
+        accumulateTuplesItems(combinedTuples, tuples);
+        accumulateTuplesItems(combinedTuples, otherTuples);
+        return combinedTuples;
+    }
+
+    private static <S> void accumulateTuplesItems(List<Tuple<S, S>> accumulation, List<Tuple<S, S>> itemsInTuples) {
+        for (Tuple<S, S> tuple : itemsInTuples) {
+            accumulateItem(accumulation, tuple.getFirst());
+            if (!tuple.isPartial()) {
+                accumulateItem(accumulation, tuple.getSecond());
             }
         }
-        return tuples;
     }
 
     /*
-     * null is used to mark in-progress tuples, therefore we cannot accept null items
+     * Append the item to the list of tuples, either by setting it as the second element of the final partial tuple
+     * in the list, or constructing a new partial tuple from the item and appending that to the list. Because this
+     * method is unaware if the provided item is the final item to be accumulated, this method will result in a
+     * partial tuple being the final element of the list if there are an odd number of items accumulated ultimately.
      */
-    private static <S> void accumulateItemInTupleList(List<Tuple<S, S>> tuples, S item) {
-        Objects.requireNonNull(item, "Null items not allowed. Consider filtering them from Stream.");
+    private static <S> void accumulateItem(List<Tuple<S, S>> tuples, S item) {
         if (tuples.isEmpty()) {
-            tuples.add(Tuple.of(item, null));
+            tuples.add(Tuple.partial(item));
         } else {
             int lastIndex = tuples.size() - 1;
             Tuple<S, S> tuple = tuples.get(lastIndex);
-            if (tuple.getSecond() == null) {
-                tuples.set(lastIndex, tuple.withSecond(item));
+            if (tuple.isPartial()) {
+                Tuple<S, S> combinedTuple = tuple.withSecond(item);
+                tuples.set(lastIndex, combinedTuple);
             } else {
-                tuples.add(Tuple.of(item, null));
+                tuples.add(Tuple.partial(item));
             }
         }
     }

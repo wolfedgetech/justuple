@@ -444,4 +444,11 @@ public class TupleTest {
         assertThat(nonNull.toString()).isEqualTo("(foo, bar)");
     }
 
+    @Test
+    void partial_tuple_with_non_serializable_value_is_not_serializable() {
+        Tuple<Object, Object> partial = Tuple.partial(new Object());
+
+        assertThat(partial).isNotInstanceOf(Serializable.class);
+    }
+
 }
