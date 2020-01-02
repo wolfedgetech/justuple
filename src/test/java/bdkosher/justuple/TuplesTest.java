@@ -259,4 +259,57 @@ public class TuplesTest {
                 .withFailMessage("Final Tuple should be serializable when sole member is serializable.")
                 .isInstanceOf(Serializable.class);
     }
+
+    @Test
+    void map_using_noncollection_iterable() {
+        Iterable<Tuple<String, Integer>> iterable = new NonCollectionIterable<>(Arrays.asList(
+                Tuple.of("foo", 12),
+                Tuple.of("bar", 24))
+        );
+
+        Map<String, Integer> map = Tuples.map(iterable);
+        assertThat(map).containsOnlyKeys("foo", "bar");
+        assertThat(map.get("foo")).isEqualTo(12);
+        assertThat(map.get("bar")).isEqualTo(24);
+    }
+
+    @Test
+    void mapAll_using_noncollection_iterable() {
+        Iterable<Tuple<String, Integer>> iterable = new NonCollectionIterable<>(Arrays.asList(
+                Tuple.of("foo", 12),
+                Tuple.of("bar", 24),
+                Tuple.of("bar", 36))
+        );
+
+        Map<String, List<Integer>> map = Tuples.mapAll(iterable);
+        assertThat(map).containsOnlyKeys("foo", "bar");
+        assertThat(map.get("foo")).containsExactly(12);
+        assertThat(map.get("bar")).containsExactly(24, 36);
+    }
+
+    @Test
+    void from_using_noncollection_iterable() {
+        Iterable<Object> iterable = new NonCollectionIterable<>(Arrays.asList("foo", 12, "bar", 24));
+
+        List<Tuple<Object, Object>> tuples = Tuples.from(iterable);
+        assertThat(tuples).containsExactly(
+                Tuple.of("foo", 12),
+                Tuple.of("bar", 24)
+        );
+    }
+
+
+    private static class NonCollectionIterable<S> implements Iterable<S> {
+
+        private final Collection<S> collection;
+
+        NonCollectionIterable(Collection<S> collection) {
+            this.collection = collection;
+        }
+
+        @Override
+        public Iterator<S> iterator() {
+            return collection.iterator();
+        }
+    }
 }

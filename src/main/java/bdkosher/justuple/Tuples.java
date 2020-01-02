@@ -5,10 +5,11 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * Factory methods for creating Tuple instances.
+ * Factory methods for creating multiple Tuple instances from a Collections API type and vice versa.
  */
 public abstract class Tuples {
 
@@ -17,7 +18,7 @@ public abstract class Tuples {
     }
 
     /**
-     * Return the given tuples as a Map whose keys correspond to the tuples' first members and whose values
+     * Return the provided tuples as a Map whose keys correspond to the tuples' first members and whose values
      * correspond to the tuples' respective second members.
      * <p>
      * If there are at least two tuples that have identical first members (according to Object.equals(Object)), an
@@ -30,12 +31,28 @@ public abstract class Tuples {
      * @throws IllegalStateException if there are multiple tuples with equal first members
      */
     public static <K, V> Map<K, V> map(Iterable<Tuple<K, V>> tuples) {
-        return StreamSupport.stream(tuples.spliterator(), false)
-                .collect(Collectors.toMap(Tuple::getFirst, Tuple::getSecond));
+        return map(StreamSupport.stream(tuples.spliterator(), false));
     }
 
     /**
-     * Return the given tuples as a Map whose keys correspond to the tuples' first members and whose values
+     * Return the provided tuples as a Map whose keys correspond to the tuples' first members and whose values
+     * correspond to the tuples' respective second members.
+     * <p>
+     * If there are at least two tuples that have identical first members (according to Object.equals(Object)), an
+     * IllegalStateException will be thrown.
+     *
+     * @param tuples cannot be null but may be empty
+     * @param <K>    the key type
+     * @param <V>    the value type
+     * @return a map whose size is equal to the number of tuples passed in
+     * @throws IllegalStateException if there are multiple tuples with equal first members
+     */
+    public static <K, V> Map<K, V> map(Collection<Tuple<K, V>> tuples) {
+        return map(tuples.stream());
+    }
+
+    /**
+     * Return the provided tuples as a Map whose keys correspond to the tuples' first members and whose values
      * correspond to the tuples' respective second members.
      * <p>
      * If there are at least two tuples that have identical first members (according to Object.equals(Object)), an
@@ -49,8 +66,24 @@ public abstract class Tuples {
      */
     @SafeVarargs
     public static <K, V> Map<K, V> map(Tuple<K, V>... tuples) {
-        return Arrays.stream(tuples)
-                .collect(Collectors.toMap(Tuple::getFirst, Tuple::getSecond));
+        return map(Arrays.stream(tuples));
+    }
+
+    /**
+     * Return the provided tuples as a Map whose keys correspond to the tuples' first members and whose values
+     * correspond to the tuples' respective second members.
+     * <p>
+     * If there are at least two tuples that have identical first members (according to Object.equals(Object)), an
+     * IllegalStateException will be thrown.
+     *
+     * @param tuples cannot be null but may be empty. The Stream will be consumed by this method.
+     * @param <K>    the key type
+     * @param <V>    the value type
+     * @return a map whose size is equal to the number of tuples passed in
+     * @throws IllegalStateException if there are multiple tuples with equal first members
+     */
+    public static <K, V> Map<K, V> map(Stream<Tuple<K, V>> tuples) {
+        return tuples.collect(Collectors.toMap(Tuple::getFirst, Tuple::getSecond));
     }
 
     /**
@@ -65,10 +98,7 @@ public abstract class Tuples {
      * @return a map whose size is equal to the number of unique first member values among all provided tuples
      */
     public static <K, V> Map<K, List<V>> mapAll(Iterable<Tuple<K, V>> tuples) {
-        return unboxOptionalKeys(
-                StreamSupport.stream(tuples.spliterator(), false)
-                        .collect(mapOfFirstToListOfSecondCollector())
-        );
+        return mapAll(StreamSupport.stream(tuples.spliterator(), false));
     }
 
     /**
@@ -82,14 +112,43 @@ public abstract class Tuples {
      * @param <V>    the value type
      * @return a map whose size is equal to the number of unique first member values among all provided tuples
      */
+    public static <K, V> Map<K, List<V>> mapAll(Collection<Tuple<K, V>> tuples) {
+        return mapAll(tuples.stream());
+    }
+
+    /**
+     * Return the provided tuples as a Map with keys corresponding to the unique first members that exist for all
+     * provided tuples. The values of the Map are all tuples' second members who share that first member value. For
+     * example, if tuples (1,1) and (1,2) were provided as arguments, the returned map would have one entry with key=1
+     * and a value that is the list [1,2].
+     *
+     * @param tuples cannot be null but may be empty
+     * @param <K>    the key type
+     * @param <V>    the value type
+     * @return a map whose size is equal to the number of unique first member values among all provided tuples
+     */
+    @SafeVarargs
     public static <K, V> Map<K, List<V>> mapAll(Tuple<K, V>... tuples) {
-        return unboxOptionalKeys(
-                Arrays.stream(tuples).collect(mapOfFirstToListOfSecondCollector())
-        );
+        return mapAll(Arrays.stream(tuples));
+    }
+
+    /**
+     * Return the provided tuples as a Map with keys corresponding to the unique first members that exist for all
+     * provided tuples. The values of the Map are all tuples' second members who share that first member value. For
+     * example, if tuples (1,1) and (1,2) were provided as arguments, the returned map would have one entry with key=1
+     * and a value that is the list [1,2].
+     *
+     * @param tuples cannot be null but may be empty. The Stream will be consumed by this method.
+     * @param <K>    the key type
+     * @param <V>    the value type
+     * @return a map whose size is equal to the number of unique first member values among all provided tuples
+     */
+    public static <K, V> Map<K, List<V>> mapAll(Stream<Tuple<K, V>> tuples) {
+        return unboxOptionalKeys(tuples.collect(mapOfFirstToListOfSecondCollector()));
     }
 
     /*
-     * Note: groupingBy does not support null keys, so we box nulls in an Optional and unbox them with this method.
+     * groupingBy does not support null keys, so we box nulls in an Optional and unbox them with this method.
      * The Map implementation we use in this method must handle null keys.
      */
     private static <K, V> Map<K, V> unboxOptionalKeys(Map<Optional<K>, V> map) {
@@ -109,9 +168,9 @@ public abstract class Tuples {
      * Return a Set of tuples derived from the provided Map. Each Map entry corresponds to exactly one tuple instance.
      * Null keys and values are supported.
      *
-     * @param map cannot be null
-     * @param <U> the key type
-     * @param <V> the value type
+     * @param map cannot be null but may be empty
+     * @param <U> the key type and Tuple's first member type
+     * @param <V> the value type and Tuple's second member type
      * @return a potentially empty Set of Tuple instances corresponding to the provided Map entries.
      */
     public static <U, V> Set<Tuple<U, V>> from(Map<U, V> map) {
@@ -121,22 +180,57 @@ public abstract class Tuples {
     }
 
     /**
-     * Return a list of tuples containing all elements available from the iterable.
+     * Return a List of tuples containing all pairs of items available from the provided Iterable.
      * <p>
-     * Every pair of adjacent elements are combined into a Tuple.
+     * Every pair of adjacent items are combined into one Tuple.
      * <p>
-     * If the input has an even number of elements, the returned list of Tuples is half the size of input
-     * .
+     * If the input has an even number of elements, the returned list of Tuples is half the size of input.
+     * <p>
      * If the input has an odd number of elements, the returned list is half the size of input plus one, with
      * the final tuple in the returned list having a null second member.
      *
-     * @param iterable cannot be null
-     * @param <S>      the type of elements emitted by the Stream and the type of the Tuples' members
+     * @param items cannot be null but may be empty
+     * @param <S>   the type of elements emitted by the Iterable's iterator and the type of the Tuples' members
      * @return a potentially empty Set of Tuple instances corresponding to the provided Map entries.
      */
-    public static <S> List<Tuple<S, S>> from(Iterable<S> iterable) {
-        return StreamSupport.stream(iterable.spliterator(), false)
-                .collect(collector());
+    public static <S> List<Tuple<S, S>> from(Iterable<S> items) {
+        return from(StreamSupport.stream(items.spliterator(), false));
+    }
+
+    /**
+     * Return a List of tuples containing all pairs of items available from the provided List.
+     * <p>
+     * Every pair of adjacent items are combined into one Tuple.
+     * <p>
+     * If the input has an even number of elements, the returned list of Tuples is half the size of input.
+     * <p>
+     * If the input has an odd number of elements, the returned list is half the size of input plus one, with
+     * the final tuple in the returned list having a null second member.
+     *
+     * @param items cannot be null but may be empty
+     * @param <S>   the type of elements contained within the List and the type of the Tuples' members
+     * @return a potentially empty Set of Tuple instances corresponding to the provided Map entries.
+     */
+    public static <S> List<Tuple<S, S>> from(List<S> items) {
+        return from(items.stream());
+    }
+
+    /**
+     * Return a List of tuples containing all pairs of items available from the provided Stream.
+     * <p>
+     * Every pair of adjacent items are combined into one Tuple.
+     * <p>
+     * If the input has an even number of elements, the returned list of Tuples is half the size of input.
+     * <p>
+     * If the input has an odd number of elements, the returned list is half the size of input plus one, with
+     * the final tuple in the returned list having a null second member.
+     *
+     * @param items cannot be null but may be empty. The Stream will be consumed by this method.
+     * @param <S>   the type of elements emitted by the Stream and the type of the Tuples' members
+     * @return a potentially empty Set of Tuple instances corresponding to the provided Map entries.
+     */
+    public static <S> List<Tuple<S, S>> from(Stream<S> items) {
+        return items.collect(collector());
     }
 
     /**

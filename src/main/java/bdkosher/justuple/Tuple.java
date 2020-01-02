@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * An ordered pair of potentially null references, not necessarily of the same type. Immutable and thread-safe.
+ * An ordered pair of potentially {@code null} references, not necessarily of the same type. Immutable and thread-safe.
  *
  * @param <U> type of the first tuple member
  * @param <V> type of the second tuple member
@@ -41,7 +41,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Creates a partial tuple where only one member is populated.
+     * Creates a partial Tuple where only one member is populated.
      *
      * @param value the only value contained within the tuple.
      * @param <S>   the type of the value
@@ -55,9 +55,11 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Return a Tuple of the first two elements available. If no elements are available, the Tuple will have
-     * {@code null} members. If only one element is available, the second member alone will be null. If there are
-     * more than two elements available, they are ignored and not consumed by this method.
+     * Return a Tuple of the first two elements available.
+     * <p>
+     * If no elements are available, the Tuple will have {@code null} members. If only one element is available, the
+     * second member alone will be {@code null}. If there are more than two elements available, they are ignored and
+     * not consumed by this method.
      *
      * @param iterable may not be null but may be empty.
      * @param <S>      the type of object emitted by the iterable Tuples' members
@@ -102,11 +104,9 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
         return second;
     }
 
-    /**
+    /*
      * Returns true if this Tuple was partially constructed using the {@code partial} factory method. Partial tuples
      * are semantically distinct from tuples constructed with two values, even if one or both of those values are null.
-     *
-     * @return true if the tuple is partial
      */
     boolean isPartial() {
         return false;
@@ -140,7 +140,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Return a {@code java.util. Map} representation of this tuple. The Map will have a single-entry even if the
+     * Return a {@code java.util.Map} representation of this tuple. The Map will have a single-entry even if the
      * tuple's first member is {@code null}.
      *
      * @return a single-entry Map
@@ -150,8 +150,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Return a {@code java.util.Map.Entry} representation of this tuple. If the tuple's first member is null, the
-     * entry's key will be null.
+     * Return a {@code java.util.Map.Entry} representation of this tuple. If the tuple's first member is {@code null},
+     * the entry's key will be {@code null}.
      *
      * @return a Map entry
      */
@@ -160,7 +160,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Return the tuple as two-element list.
+     * Return a two-element list representing this Tuple. The list will have a fixed size of 2, even if one or both of
+     * the member values are {@code null}.
      *
      * @return non-null fixed-size list.
      */
@@ -187,7 +188,7 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Return a new tuple with its members in reversed order; the first element is second and the second is first.
+     * Return a new Tuple with its members in reversed order; the first element is second and the second is first.
      *
      * @return a new Tuple instance
      */
@@ -196,8 +197,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Return a new Tuple with the given value for the first member. The second member will be this tuple's current
-     * value. This tuple will remain unchanged.
+     * Return a new Tuple with the given value for the first member. The second member will be this Tuple's current
+     * value. This Tuple will remain unchanged.
      *
      * @param value may be null
      * @return a new Tuple
@@ -207,8 +208,8 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
     }
 
     /**
-     * Return a new Tuple with the given value for the second member. The second member will be this tuple's current
-     * value. This tuple will remain unchanged.
+     * Return a new Tuple with the given value for the second member. The second member will be this Tuple's current
+     * value. This Tuple will remain unchanged.
      *
      * @param value may be null
      * @return a new Tuple
@@ -248,12 +249,9 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
         return "(" + first + ", " + second + ')';
     }
 
-    /**
+    /*
      * A serializable version of Tuple in case the Tuple's ability to be Serialized happens to be important to
      * someone somewhere for some reason.
-     *
-     * @param <U> not constrained to be serializable for the sake of implementation ease.
-     * @param <V>
      */
     private static class SerializableTuple<U, V> extends Tuple<U, V> implements Serializable {
         private static final long serialVersionUID = 20191210;
@@ -263,13 +261,10 @@ public class Tuple<U, V> implements Comparable<Tuple<U, V>> {
         }
     }
 
-    /**
+    /*
      * A partial tuple is constructed with only one potentially null member.
-     * <p>
      * Note: this class does not override the swapped method, which means that swapping a partial tuple results in
      * a new, non-partial tuple with first member always being null.
-     *
-     * @param <S> the type of the only member value
      */
     private static class PartialTuple<S> extends Tuple<S, S> {
         PartialTuple(S only) {
