@@ -199,10 +199,29 @@ If there are multiple tuples with identical keys, the `map` method will throw an
 To overcome this problem, use the `mapAll` method to produce a `Map<K, List<V>>` instance.
 
 ```java
-    Map<String, List<Integer>> map = Tuple.mapAll(
-        Tuple.of("foo", 1),
-        Tuple.of("foo", 2)
-    );
-    assertThat(map).containsOnlyKeys("foo");
-    assertThat(map.get("foo")).contains(1, 2);
+  Map<String, List<Integer>> map = Tuple.mapAll(
+      Tuple.of("foo", 1),
+      Tuple.of("foo", 2)
+  );
+  assertThat(map).containsOnlyKeys("foo");
+  assertThat(map.get("foo")).contains(1, 2);
 ``` 
+
+#### `Tuples.zip` Static Method
+
+The `zip` method combines two arrays/Streams/Iterables into a single List of Tuples. The two arguments to the method
+need not be of the same length and can use different data types.
+
+```java
+  List<Tuple<Integer, Integer>> tuples = Tuples.zip(
+          IntStream.range(0, 1000).boxed(),
+          IntStream.range(1, 1001).boxed()
+  );
+
+  assertThat(tuples).hasSize(1000);
+  int value = 0;
+  for (Tuple<Integer, Integer> tuple : tuples) {
+      assertThat(tuple).isEqualTo(Tuple.of(value, value + 1));
+      ++value;
+  }
+```

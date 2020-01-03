@@ -5,9 +5,10 @@ import org.junit.jupiter.api.Test;
 import java.io.Serializable;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 public class TuplesTest {
@@ -298,6 +299,86 @@ public class TuplesTest {
         );
     }
 
+    @Test
+    void zip_two_iterables_of_same_size() {
+        List<Integer> firstItems = IntStream.range(0, 1000)
+                .boxed()
+                .collect(Collectors.toList());
+        List<String> secondItems = firstItems.stream()
+                .map(i -> i.toString())
+                .collect(Collectors.toList());
+
+        List<Tuple<Integer, String>> tuples = Tuples.zip(firstItems, secondItems);
+
+        assertThat(tuples).hasSize(1000);
+        int first = 0;
+        for (Tuple<Integer, String> tuple : tuples) {
+            String second = Integer.toString(first);
+            assertThat(tuple).isEqualTo(Tuple.of(first, second));
+            first++;
+        }
+    }
+
+    @Test
+    void zip_two_empty_arrays_results_in_empty_list() {
+        List<Tuple<String, String>> tuples = Tuples.zip(new String[0], new String[0]);
+
+        assertThat(tuples).isEmpty();
+    }
+
+    @Test
+    void zip_two_iterables_first_is_larger_than_second() {
+        List<Integer> firstItems = IntStream.range(0, 1000)
+                .boxed()
+                .collect(Collectors.toList());
+        List<String> secondItems = firstItems.stream()
+                .map(i -> i.toString())
+                .collect(Collectors.toList());
+
+        firstItems.removeIf(i -> i >= 500); // remove the second half
+        assertThat(firstItems).hasSize(500); // precondition check
+
+        List<Tuple<Integer, String>> tuples = Tuples.zip(firstItems, secondItems);
+
+        assertThat(tuples).hasSize(1000);
+        int first = 0;
+        for (Tuple<Integer, String> tuple : tuples) {
+            String second = Integer.toString(first);
+            if (first < 500) {
+                assertThat(tuple).isEqualTo(Tuple.of(first, second));
+            } else {
+                assertThat(tuple).isEqualTo(Tuple.of(null, second));
+            }
+            first++;
+        }
+    }
+
+    @Test
+    void zip_two_iterables_second_is_larger_than_first() {
+        List<Integer> firstItems = IntStream.range(0, 1000)
+                .boxed()
+                .collect(Collectors.toList());
+        List<String> secondItems = firstItems.stream()
+                .map(i -> i.toString())
+                .collect(Collectors.toList());
+
+        secondItems.removeIf(i -> Integer.parseInt(i) >= 500); // remove the second half
+        assertThat(secondItems).hasSize(500); // precondition check
+
+        List<Tuple<Integer, String>> tuples = Tuples.zip(firstItems, secondItems);
+
+        assertThat(tuples).hasSize(1000);
+        int first = 0;
+        for (Tuple<Integer, String> tuple : tuples) {
+            String second = Integer.toString(first);
+            if (first < 500) {
+                assertThat(tuple).isEqualTo(Tuple.of(first, second));
+            } else {
+                assertThat(tuple).isEqualTo(Tuple.of(first, null));
+            }
+            first++;
+        }
+    }
 
     private static class NonCollectionIterable<S> implements Iterable<S> {
 

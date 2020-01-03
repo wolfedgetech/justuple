@@ -317,4 +317,102 @@ public abstract class Tuples {
             }
         }
     }
+
+    /**
+     * Combines the items from the first argument with the items into the second argument into a List of Tuples. The
+     * size of the returned List is the size of the larger of the two arguments. If there is a difference in
+     * size between the two arguments, then the corresponding Tuples will have one @{code null} value.
+     * <p>
+     * For example, given a List of one item as the first argument and a List of two items in the second, a List of
+     * two Tuples will be returned, the second of which will have a @{code null} first value and a non-null second.
+     *
+     * @param firstItems  may not be null but can be empty
+     * @param secondItems may not be null but can be empty
+     * @param <U>         the type of the Tuples first members
+     * @param <V>         the type of the Tuples second members
+     * @return a non-null but potentially empty List
+     */
+    public static <U, V> List<Tuple<U, V>> zip(U[] firstItems, V[] secondItems) {
+        return zip(Arrays.stream(firstItems), Arrays.stream(secondItems));
+    }
+
+    /**
+     * Combines the items from the first argument with the items into the second argument into a List of Tuples. The
+     * size of the returned List is the size of the larger of the two arguments. If there is a difference in
+     * size between the two arguments, then the corresponding Tuples will have one @{code null} value.
+     * <p>
+     * For example, given a List of one item as the first argument and a List of two items in the second, a List of
+     * two Tuples will be returned, the second of which will return @{code null} for @{code Tuple::getFirst}
+     *
+     * @param firstItems  may not be null but can be empty
+     * @param secondItems may not be null but can be empty
+     * @param <U>         the type of the Tuples first members
+     * @param <V>         the type of the Tuples second members
+     * @return a non-null but potentially empty List
+     */
+    public static <U, V> List<Tuple<U, V>> zip(Iterable<U> firstItems, Iterable<V> secondItems) {
+        return zip(firstItems.iterator(), secondItems.iterator());
+    }
+
+    /**
+     * Combines the items from the first argument with the items into the second argument into a List of Tuples. The
+     * size of the returned List is the size of the larger of the two arguments. If there is a difference in
+     * size between the two arguments, then the corresponding Tuples will one @{code null} value.
+     * <p>
+     * For example, given a List of one item as the first argument and a List of two items in the second, a List of
+     * two Tuples will be returned, the second of which will have a @{code null} first value and a non-null second value.
+     * <p>
+     * Calling this method will call terminal operations on both of the provided Streams.
+     *
+     * @param firstItems  may not be null but can be empty
+     * @param secondItems may not be null but can be empty
+     * @param <U>         the type of the Tuples first members
+     * @param <V>         the type of the Tuples second members
+     * @return a non-null but potentially empty List
+     */
+    public static <U, V> List<Tuple<U, V>> zip(Stream<U> firstItems, Stream<V> secondItems) {
+        return zip(firstItems.iterator(), secondItems.iterator());
+    }
+
+    private static <U, V> List<Tuple<U, V>> zip(Iterator<U> firstItems, Iterator<V> secondItems) {
+        TupleZipper<U, V> zipper = new TupleZipper<>(firstItems, secondItems);
+        List<Tuple<U, V>> tuples = new ArrayList<>();
+        while (zipper.hasNext()) {
+            tuples.add(zipper.next());
+        }
+        return tuples;
+    }
+
+    private static class TupleZipper<U, V> implements Iterator<Tuple<U, V>> {
+
+        private final Iterator<U> firstIterator;
+        private final Iterator<V> secondIterator;
+
+        TupleZipper(Iterator<U> firstIterator, Iterator<V> secondIterator) {
+            this.firstIterator = Objects.requireNonNull(firstIterator, "First Items cannot be null.");
+            this.secondIterator = Objects.requireNonNull(secondIterator, "Second Items cannot be null.");
+        }
+
+        @Override
+        public boolean hasNext() {
+            return firstIterator.hasNext() || secondIterator.hasNext();
+        }
+
+        U nextFirst() {
+            return next(firstIterator);
+        }
+
+        V nextSecond() {
+            return next(secondIterator);
+        }
+
+        private static <T> T next(Iterator<T> iterator) {
+            return iterator.hasNext() ? iterator.next() : null;
+        }
+
+        @Override
+        public Tuple<U, V> next() {
+            return Tuple.of(nextFirst(), nextSecond());
+        }
+    }
 }
