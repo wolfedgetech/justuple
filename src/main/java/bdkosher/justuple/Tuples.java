@@ -319,12 +319,31 @@ public abstract class Tuples {
     }
 
     /**
+     * Combines items within the single provided Tuple into a List of Tuples containing the individual items. The
+     * size of the returned List is the size of the larger of the two members of the Tuple. If there is a difference in
+     * size between the number of items in the provide Tuple, then the excess items will result in Tuples with
+     * one @{code null} value.
+     * <p>
+     * For example, given a Tuple of a one-item List and a two-item List, a List of two Tuples will be returned, the
+     * second of which will have a @{code null} first value and a non-null second value.
+     *
+     * @param tuple may not be null, nor can it have null values
+     * @param <U>   the type of the Tuples first members
+     * @param <V>   the type of the Tuples second members
+     * @return a non-null but potentially empty List
+     */
+    public static <U, V> List<Tuple<U, V>> zip(Tuple<? extends Iterable<U>, ? extends Iterable<V>> tuple) {
+        return zip(tuple.getFirst(), tuple.getSecond());
+    }
+
+    /**
      * Combines the items from the first argument with the items into the second argument into a List of Tuples. The
      * size of the returned List is the size of the larger of the two arguments. If there is a difference in
-     * size between the two arguments, then the corresponding Tuples will have one @{code null} value.
+     * size between the two arguments, then the excess items will result in Tuples with one @{code null} value.
      * <p>
      * For example, given a List of one item as the first argument and a List of two items in the second, a List of
-     * two Tuples will be returned, the second of which will have a @{code null} first value and a non-null second.
+     * two Tuples will be returned, the second of which will have a @{code null} first value and a non-null second
+     * value.
      *
      * @param firstItems  may not be null but can be empty
      * @param secondItems may not be null but can be empty
@@ -339,10 +358,11 @@ public abstract class Tuples {
     /**
      * Combines the items from the first argument with the items into the second argument into a List of Tuples. The
      * size of the returned List is the size of the larger of the two arguments. If there is a difference in
-     * size between the two arguments, then the corresponding Tuples will have one @{code null} value.
+     * size between the two arguments, then the excess items will result in Tuples with one @{code null} value.
      * <p>
      * For example, given a List of one item as the first argument and a List of two items in the second, a List of
-     * two Tuples will be returned, the second of which will return @{code null} for @{code Tuple::getFirst}
+     * two Tuples will be returned, the second of which will have a @{code null} first value and a non-null second
+     * value.
      *
      * @param firstItems  may not be null but can be empty
      * @param secondItems may not be null but can be empty
@@ -357,12 +377,13 @@ public abstract class Tuples {
     /**
      * Combines the items from the first argument with the items into the second argument into a List of Tuples. The
      * size of the returned List is the size of the larger of the two arguments. If there is a difference in
-     * size between the two arguments, then the corresponding Tuples will one @{code null} value.
+     * size between the two arguments, then the excess items will result in Tuples with one @{code null} value.
      * <p>
      * For example, given a List of one item as the first argument and a List of two items in the second, a List of
-     * two Tuples will be returned, the second of which will have a @{code null} first value and a non-null second value.
+     * two Tuples will be returned, the second of which will have a @{code null} first value and a non-null second
+     * value.
      * <p>
-     * Calling this method will call terminal operations on both of the provided Streams.
+     * This method will call terminal operations on both of the provided Streams.
      *
      * @param firstItems  may not be null but can be empty
      * @param secondItems may not be null but can be empty
@@ -376,11 +397,70 @@ public abstract class Tuples {
 
     private static <U, V> List<Tuple<U, V>> zip(Iterator<U> firstItems, Iterator<V> secondItems) {
         TupleZipper<U, V> zipper = new TupleZipper<>(firstItems, secondItems);
-        List<Tuple<U, V>> tuples = new ArrayList<>();
+        List<Tuple<U, V>> tuples = new LinkedList<>();
         while (zipper.hasNext()) {
             tuples.add(zipper.next());
         }
         return tuples;
+    }
+
+    /**
+     * Extracts the individual items contained within the provided tuples and returns a single Tuple of those items.
+     * The returned Tuple holds the items in a List that is ordered according to how the provided Tuples are ordered.
+     * <p>
+     * Tuples containing {@code null} values are supported.
+     *
+     * @param tuples zero or more Tuples
+     * @param <U>    the type of items in the returned Tuple's first member
+     * @param <V>the type of items in the returned Tuple's second member
+     * @return a single Tuple whose members are Lists of the items found in the provided Tuples
+     */
+    @SafeVarargs
+    public static <U, V> Tuple<List<U>, List<V>> unzip(Tuple<U, V>... tuples) {
+        return unzip(Arrays.stream(tuples));
+    }
+
+    /**
+     * Extracts the individual items contained within the provided tuples and returns a single Tuple of those items.
+     * The returned Tuple holds the items in a List that is ordered according to how the provided Tuples are ordered.
+     * <p>
+     * Tuples containing {@code null} values are supported.
+     *
+     * @param tuples a non-null Iterable of zero or more Tuples
+     * @param <U>    the type of items in the returned Tuple's first member
+     * @param <V>the type of items in the returned Tuple's second member
+     * @return a single Tuple whose members are Lists of the items found in the provided Tuples
+     */
+    public static <U, V> Tuple<List<U>, List<V>> unzip(Iterable<Tuple<U, V>> tuples) {
+        return unzip(tuples.iterator());
+    }
+
+    /**
+     * Extracts the individual items contained within the provided tuples and returns a single Tuple of those items.
+     * The returned Tuple holds the items in a List that is ordered according to how the provided Tuples are ordered.
+     * <p>
+     * Tuples containing {@code null} values are supported.
+     * <p>
+     * This method will call a terminal operation on the provided Stream.
+     *
+     * @param tuples a non-null Stream of zero or more Tuples
+     * @param <U>    the type of items in the returned Tuple's first member
+     * @param <V>the type of items in the returned Tuple's second member
+     * @return a single Tuple whose members are Lists of the items found in the provided Tuples
+     */
+    public static <U, V> Tuple<List<U>, List<V>> unzip(Stream<Tuple<U, V>> tuples) {
+        return unzip(tuples.iterator());
+    }
+
+    private static <U, V> Tuple<List<U>, List<V>> unzip(Iterator<Tuple<U, V>> tuples) {
+        List<U> first = new LinkedList<>();
+        List<V> second = new LinkedList<>();
+        while (tuples.hasNext()) {
+            Tuple<U, V> tuple = tuples.next();
+            first.add(tuple.getFirst());
+            second.add(tuple.getSecond());
+        }
+        return Tuple.of(first, second);
     }
 
     private static class TupleZipper<U, V> implements Iterator<Tuple<U, V>> {

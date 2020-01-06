@@ -380,6 +380,37 @@ public class TuplesTest {
         }
     }
 
+    @Test
+    void zip_a_tuple_of_sets() {
+        Tuple<Set<String>, Set<Integer>> tupleOfSets = Tuple.of(Collections.singleton("foo"), Collections.singleton(1));
+
+        List<Tuple<String, Integer>> tuples = Tuples.zip(tupleOfSets);
+        assertThat(tuples).containsExactly(
+                Tuple.of("foo", 1)
+        );
+    }
+
+    @Test
+    void unzip_tuples_array() {
+        Tuple<List<String>, List<Integer>> unzipped = Tuples.unzip(Tuple.of("foo", 1), Tuple.of("bar", 2), Tuple.of("baz", 3));
+
+        assertThat(unzipped.getFirst()).containsExactly("foo", "bar", "baz");
+        assertThat(unzipped.getSecond()).containsExactly(1, 2, 3);
+    }
+
+    @Test
+    void unzip_tuples_collection_with_some_partial_tuples() {
+        Tuple<List<Integer>, List<String>> unzipped = Tuples.unzip(Arrays.asList(
+                Tuple.of(1, "foo"),
+                Tuple.of(2, null),
+                Tuple.of(null, "bar"),
+                Tuple.of(4, "baz")
+        ));
+
+        assertThat(unzipped.getFirst()).containsExactly(1, 2, null, 4);
+        assertThat(unzipped.getSecond()).containsExactly("foo", null, "bar", "baz");
+    }
+
     private static class NonCollectionIterable<S> implements Iterable<S> {
 
         private final Collection<S> collection;

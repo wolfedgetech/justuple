@@ -207,7 +207,7 @@ To overcome this problem, use the `mapAll` method to produce a `Map<K, List<V>>`
   assertThat(map.get("foo")).contains(1, 2);
 ``` 
 
-#### `Tuples.zip` Static Method
+#### `Tuples.zip` and `Tuples.unzip` Static Methods
 
 The `zip` method combines two arrays/Streams/Iterables into a single List of Tuples. The two arguments to the method
 need not be of the same length and can use different data types.
@@ -224,4 +224,28 @@ need not be of the same length and can use different data types.
       assertThat(tuple).isEqualTo(Tuple.of(value, value + 1));
       ++value;
   }
+```
+
+Instead of providing two individual lists as input, you can also provide a single tuple of lists:
+```java
+  List<Tuples<Integer, String>> tuples = Tuples.zip(
+      Tuple.of(Arrays.asList(1, 2), Arrays.asList("foo", "bar")
+  );
+  assertThat(tuples).containsExactly(
+      Tuple.of(1, "foo"), Tuple.of(2, "bar")
+  )
+```
+
+This form of the method makes the purpose of `unzip` more obvious--it turns a Iterable/Stream/Array of Tuples into
+a single Tuple containing a List of items. 
+
+```java
+  Tuple<List<String>, List<Integer>> unzipped = Tuples.unzip(
+      Tuple.of("foo", 1), 
+      Tuple.of("bar", 2), 
+      Tuple.of("baz", 3)
+  );
+
+  assertThat(unzipped.getFirst()).containsExactly("foo", "bar", "baz");
+  assertThat(unzipped.getSecond()).containsExactly(1, 2, 3);
 ```
