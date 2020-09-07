@@ -16,8 +16,8 @@ There are only two classes to import, the latter of which is not needed unless y
 allow conversions to or from Java collections.
 
 ```java
-import bdkosher.justuple.Tuple;
-import bdkosher.justuple.Tuples;
+import com.wolfedgetech.justuple.Tuple;
+import com.wolfedgetech.justuple.Tuples;
 ```
 
 ### Creating a Tuple

@@ -1,4 +1,4 @@
-package bdkosher.justuple;
+package com.wolfedgetech.justuple;
 
 import java.util.*;
 import java.util.function.Supplier;

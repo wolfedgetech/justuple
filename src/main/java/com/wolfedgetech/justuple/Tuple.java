@@ -1,4 +1,4 @@
-package bdkosher.justuple;
+package com.wolfedgetech.justuple;
 
 import java.io.Serializable;
 import java.util.Iterator;

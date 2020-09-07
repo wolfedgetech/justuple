@@ -1,4 +1,4 @@
-package bdkosher.justuple;
+package com.wolfedgetech.justuple;
 
 import org.junit.jupiter.api.Test;
 
